@@ -1,7 +1,47 @@
 <img src="https://raw.githubusercontent.com/dennyglee/azure-cosmosdb-spark/master/docs/images/azure-cosmos-db-icon.png" width="75">  &nbsp; Azure Cosmos DB BulkExecutor library for Java
 ==========================================
 
-# Contributing
+The Azure Cosmos DB BulkExecutor library for Java acts as an extension library to the [Cosmos DB Java SDK](https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sdk-java) and provides developers out-of-the-box functionality to perform bulk operations in [Azure Cosmos DB](http://cosmosdb.com).
+
+<details>
+<summary><strong><em>Table of Contents</em></strong></summary>
+
+* [Consuming the Microsoft Azure Cosmos DB BulkExecutor Java library](#maven)
+* [Bulk Import API](#bulk-import-api)
+  * [Configurable parameters](#bulk-import-configurations)
+  * [Bulk import response object definition](#bulk-import-response)
+  * [Getting started with bulk import](#bulk-import-getting-started)
+  * [Performance of bulk import sample](bulk-import-performance)
+  * [API implementation details](bulk-import-client-side)
+* [Bulk Update API](#bulk-update-api)
+  * [List of supported field update operations](#field-update-operations)
+  * [Configurable parameters](#bulk-update-configurations)
+  * [Bulk update response object definition](#bulk-update-response)
+  * [Getting started with bulk update](#bulk-update-getting-started)
+  * [Performance of bulk update sample](bulk-update-performance)
+  * [API implementation details](bulk-update-client-side)
+* [Performance tips](#additional-pointers)
+* [Contributing & Feedback](#contributing--feedback)
+* [Legal Notices](#legal-notice)
+* [Other relevant projects](#relevant-projects)
+
+</details>
+
+## Consuming the Microsoft Azure Cosmos DB BulkExecutor Java library
+
+This project includes samples, documentation and performance tips for consuming the BulkExecutor library. You can download the official public maven package from [here](https://search.maven.org/#search%7Cga%7C1%7Cdocumentdb-bulkexecutor).
+
+For example, using maven, you can add the following dependency to your maven pom file:
+```xml
+<dependency>
+  <groupId>com.microsoft.azure</groupId>
+  <artifactId>documentdb-bulkexecutor</artifactId>
+  <version>1.0.6</version>
+</dependency>
+```
+
+------------------------------------------
+## Contributing & Feedback
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -15,7 +55,11 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-# Legal Notices
+To give feedback and/or report an issue, open a [GitHub
+Issue](https://help.github.com/articles/creating-an-issue/).
+
+------------------------------------------
+## Legal Notices
 
 Microsoft and any contributors grant you a license to the Microsoft documentation and other content
 in this repository under the [Creative Commons Attribution 4.0 International Public License](https://creativecommons.org/licenses/by/4.0/legalcode),
@@ -31,3 +75,8 @@ Privacy information can be found at https://privacy.microsoft.com/en-us/
 
 Microsoft and any contributors reserve all others rights, whether under their respective copyrights, patents,
 or trademarks, whether by implication, estoppel or otherwise.
+
+------------------------------------------
+## Other relevant projects
+
+* [Cosmos DB BulkExecutor library for .NET](https://github.com/Azure/azure-cosmosdb-bulkexecutor-dotnet-getting-started)
