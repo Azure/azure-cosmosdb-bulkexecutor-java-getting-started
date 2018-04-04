@@ -41,6 +41,55 @@ For example, using maven, you can add the following dependency to your maven pom
 ```
 
 ------------------------------------------
+## Bulk Import API
+
+We provide two overloads of the bulk import API which accept a list of JSON-serialized documents:
+
+```java
+	public BulkImportResponse importAll(
+        Collection<String> documents,
+        boolean isUpsert) throws DocumentClientException;
+
+ 	public BulkImportResponse importAll(
+        Collection<String> documents,
+        boolean isUpsert,
+        boolean disableAutomaticIdGeneration,
+        Integer maxConcurrencyPerPartitionRange) throws DocumentClientException;   
+```
+
+### Configurable parameters
+
+* *isUpsert* : A flag to enable upsert of the documents if document with given id already exists.
+* *disableAutomaticIdGeneration* : A flag to disable automatic generation of id if absent in the document - default value is true.
+* *maxConcurrencyPerPartitionRange* : The maximum degree of concurrency per partition key range, default value is 20.
+
+### Bulk import response details
+
+The result of the bulk import API call contains the getter functions:
+* Gets the total number of documents which were successfully imported out of the documents supplied to the bulk import API call.
+```java
+public int getNumberOfDocumentsImported();
+```
+* Gets the total request units (RU) consumed by the bulk import API call.
+```java
+public double getTotalRequestUnitsConsumed();
+```
+* Gets total time taken by the bulk import API call to complete execution.
+```java
+public Duration getTotalTimeTaken();
+```
+* Gets the list of errors if some documents out of the batch supplied to the bulk import API call failed to get inserted.
+```java
+public List<Exception> getErrors();
+```
+* Gets the list of bad-format documents which were not successfully imported in the bulk import API call. User needs to fix the documents returned and retry import. Bad-format documents include documents whose *id* value is not a string (null or any other datatype is considered invalid).
+```java
+public List<Object> getBadInputDocuments();
+```
+
+### Getting started with bulk import
+
+------------------------------------------
 ## Contributing & Feedback
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
