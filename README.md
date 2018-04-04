@@ -46,11 +46,11 @@ For example, using maven, you can add the following dependency to your maven pom
 We provide two overloads of the bulk import API which accept a list of JSON-serialized documents:
 
 ```java
-	public BulkImportResponse importAll(
+public BulkImportResponse importAll(
         Collection<String> documents,
         boolean isUpsert) throws DocumentClientException;
 
- 	public BulkImportResponse importAll(
+public BulkImportResponse importAll(
         Collection<String> documents,
         boolean isUpsert,
         boolean disableAutomaticIdGeneration,
