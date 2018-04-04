@@ -30,39 +30,39 @@ import com.microsoft.azure.documentdb.bulkexecutor.bulkimport.BulkImporter;
 
 public class Main {
 
-    public static final Logger LOGGER  = LoggerFactory.getLogger(Main.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
 	public static void main(String[] args) throws Exception {
-		
-        CmdLineConfiguration cfg = parseCommandLineArgs(args);
-        
+
+		CmdLineConfiguration cfg = parseCommandLineArgs(args);
+
 		BulkImporter bulkImporter = new BulkImporter();
-		
+
 		bulkImporter.executeBulkImport(cfg);
 	}
-	
-    private static CmdLineConfiguration parseCommandLineArgs(String[] args) {
-        LOGGER.debug("Parsing the arguments ...");
-        CmdLineConfiguration cfg = new CmdLineConfiguration();
 
-        JCommander jcommander = null;
-        try {
-            jcommander = new JCommander(cfg, args);
-        } catch (Exception e) {
-            // invalid command line args
-            System.err.println(e.getMessage());
-            jcommander = new JCommander(cfg);
-            jcommander.usage();
-            System.exit(-1);
-            return null;
-        }
+	private static CmdLineConfiguration parseCommandLineArgs(String[] args) {
+		LOGGER.debug("Parsing the arguments ...");
+		CmdLineConfiguration cfg = new CmdLineConfiguration();
 
-        if (cfg.isHelp()) {
-            // prints out the usage help
-            jcommander.usage();
-            System.exit(0);
-            return null;
-        }
-        return cfg;
+		JCommander jcommander = null;
+		try {
+			jcommander = new JCommander(cfg, args);
+		} catch (Exception e) {
+			// invalid command line args
+			System.err.println(e.getMessage());
+			jcommander = new JCommander(cfg);
+			jcommander.usage();
+			System.exit(-1);
+			return null;
+		}
+
+		if (cfg.isHelp()) {
+			// prints out the usage help
+			jcommander.usage();
+			System.exit(0);
+			return null;
+		}
+		return cfg;
 	}
 }

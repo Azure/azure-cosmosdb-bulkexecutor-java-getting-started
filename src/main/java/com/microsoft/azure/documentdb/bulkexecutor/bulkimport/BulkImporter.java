@@ -44,125 +44,144 @@ import com.microsoft.azure.documentdb.bulkexecutor.bulkimport.BulkImportResponse
 
 public class BulkImporter {
 
-    public static final Logger LOGGER  = LoggerFactory.getLogger(Main.class);
-    
-	public void executeBulkImport(CmdLineConfiguration cfg) throws Exception
-	{
-        try(DocumentClient client = documentClientFrom(cfg)) {
+	public static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-            // Set retry options high for initialization
-            client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(120);
-            client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(100);
-            
-            // Also it is a good idea to set your connection pool size to be equal to the number of partitions serving your collection
+	public void executeBulkImport(CmdLineConfiguration cfg) throws Exception {
+		try (DocumentClient client = documentClientFrom(cfg)) {
 
-            // This assumes database and collection already exist
-            String collectionLink = String.format("/dbs/%s/colls/%s", cfg.getDatabaseId(), cfg.getCollectionId());
+			// Set retry options high for initialization
+			client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(120);
+			client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(100);
 
-            DocumentCollection collection = client.readCollection(collectionLink, null).getResource();
+			// Also it is a good idea to set your connection pool size to be equal to the
+			// number of partitions serving your collection
 
-            // You can specify the maximum throughput (out of entire collection's throughput) that you wish the bulk import API to consume here
-            int offerThroughput = getOfferThroughput(client, collection);
-            
-            Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(client, 
-                    cfg.getDatabaseId(), cfg.getCollectionId(), collection.getPartitionKey(),
-                    offerThroughput);
+			// This assumes database and collection already exist
+			String collectionLink = String.format("/dbs/%s/colls/%s", cfg.getDatabaseId(), cfg.getCollectionId());
 
-            // Instantiate bulk executor
-            try(DocumentBulkExecutor bulkExecutor = bulkExecutorBuilder.build()) {
-                
-                // Set retries to 0 to pass control to bulk executor
-                client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
-                client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
+			DocumentCollection collection = client.readCollection(collectionLink, null).getResource();
 
-                Stopwatch fromStartToEnd = Stopwatch.createStarted();
+			// You can specify the maximum throughput (out of entire collection's
+			// throughput) that you wish the bulk import API to consume here
+			int offerThroughput = getOfferThroughput(client, collection);
 
-                Stopwatch totalWatch = Stopwatch.createUnstarted();
+			Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(client, cfg.getDatabaseId(),
+					cfg.getCollectionId(), collection.getPartitionKey(), offerThroughput);
 
-                double totalRequestCharge = 0;
-                long totalTimeInMillis = 0;
-                long totalNumberOfDocumentsImported = 0;
+			// Instantiate bulk executor
+			try (DocumentBulkExecutor bulkExecutor = bulkExecutorBuilder.build()) {
 
-                for(int i = 0 ; i < cfg.getNumberOfCheckpoints(); i++) {
+				// Set retries to 0 to pass control to bulk executor
+				client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
+				client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
 
-                    BulkImportResponse bulkImportResponse;
+				Stopwatch fromStartToEnd = Stopwatch.createStarted();
 
-                    Collection<String> documents = DataMigrationDocumentSource.loadDocuments(cfg.getNumberOfDocumentsForEachCheckpoint(), collection.getPartitionKey());
+				Stopwatch totalWatch = Stopwatch.createUnstarted();
 
-                    if (documents.size() !=  cfg.getNumberOfDocumentsForEachCheckpoint()) {
-                        throw new RuntimeException("not enough documents generated");
-                    }
+				double totalRequestCharge = 0;
+				long totalTimeInMillis = 0;
+				long totalNumberOfDocumentsImported = 0;
 
-                    // Interested in the bulk import time, loading/generating documents is out of the scope of bulk executor and so has to be excluded
-                    totalWatch.start();
-                    bulkImportResponse = bulkExecutor.importAll(documents, false);
-                    totalWatch.stop();
+				for (int i = 0; i < cfg.getNumberOfCheckpoints(); i++) {
 
-                    System.out.println("##########################################################################################");
+					BulkImportResponse bulkImportResponse;
 
-                    totalNumberOfDocumentsImported += bulkImportResponse.getNumberOfDocumentsImported();
-                    totalTimeInMillis += bulkImportResponse.getTotalTimeTaken().toMillis();
-                    totalRequestCharge += bulkImportResponse.getTotalRequestUnitsConsumed();
+					Collection<String> documents = DataMigrationDocumentSource
+							.loadDocuments(cfg.getNumberOfDocumentsForEachCheckpoint(), collection.getPartitionKey());
 
-                    // Print statistics for current checkpoint
-                    System.out.println("Number of documents inserted in this checkpoint: " + bulkImportResponse.getNumberOfDocumentsImported());
-                    System.out.println("Import time for this checkpoint in milli seconds " + bulkImportResponse.getTotalTimeTaken().toMillis());
-                    System.out.println("Total request unit consumed in this checkpoint: " + bulkImportResponse.getTotalRequestUnitsConsumed());
+					if (documents.size() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
+						throw new RuntimeException("not enough documents generated");
+					}
 
-                    System.out.println("Average RUs/second in this checkpoint: " + bulkImportResponse.getTotalRequestUnitsConsumed() / (0.001 * bulkImportResponse.getTotalTimeTaken().toMillis()));
-                    System.out.println("Average #Inserts/second in this checkpoint: " + bulkImportResponse.getNumberOfDocumentsImported() / (0.001 * bulkImportResponse.getTotalTimeTaken().toMillis()));
-                    System.out.println("##########################################################################################");
+					// Interested in the bulk import time, loading/generating documents is out of
+					// the scope of bulk executor and so has to be excluded
+					totalWatch.start();
+					bulkImportResponse = bulkExecutor.importAll(documents, false);
+					totalWatch.stop();
 
-                    // Check the number of imported documents to ensure everything is successfully imported
-                    if (bulkImportResponse.getNumberOfDocumentsImported() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
-                        System.err.println("Some documents failed to get inserted in this checkpoint. This checkpoint has to get retried with upsert enabled");
-                        System.err.println("Number of surfaced failures: " + bulkImportResponse.getErrors().size());
-                        for(int j = 0; j < bulkImportResponse.getErrors().size(); j++) {
-                            bulkImportResponse.getErrors().get(j).printStackTrace();
-                        }
-                        break;
-                    }
-                }
+					System.out.println(
+							"##########################################################################################");
 
-                fromStartToEnd.stop();
+					totalNumberOfDocumentsImported += bulkImportResponse.getNumberOfDocumentsImported();
+					totalTimeInMillis += bulkImportResponse.getTotalTimeTaken().toMillis();
+					totalRequestCharge += bulkImportResponse.getTotalRequestUnitsConsumed();
 
-                // Print average statistics across checkpoints
-                System.out.println("##########################################################################################");
-                System.out.println("Total import time including data generation: " + fromStartToEnd.elapsed().toMillis());
-                System.out.println("Total import time in milli seconds measured by stopWatch: " + totalWatch.elapsed().toMillis());
-                System.out.println("Total import time in milli seconds measured by api : " + totalTimeInMillis);
-                System.out.println("Total Number of documents inserted " + totalNumberOfDocumentsImported);
-                System.out.println("Total request unit consumed: " + totalRequestCharge);
-                System.out.println("Average RUs/second:" + totalRequestCharge / (totalWatch.elapsed().toMillis() * 0.001));
-                System.out.println("Average #Inserts/second: " + totalNumberOfDocumentsImported / (totalWatch.elapsed().toMillis() * 0.001));
+					// Print statistics for current checkpoint
+					System.out.println("Number of documents inserted in this checkpoint: "
+							+ bulkImportResponse.getNumberOfDocumentsImported());
+					System.out.println("Import time for this checkpoint in milli seconds "
+							+ bulkImportResponse.getTotalTimeTaken().toMillis());
+					System.out.println("Total request unit consumed in this checkpoint: "
+							+ bulkImportResponse.getTotalRequestUnitsConsumed());
 
-            }
-        }
-		
+					System.out.println("Average RUs/second in this checkpoint: "
+							+ bulkImportResponse.getTotalRequestUnitsConsumed()
+									/ (0.001 * bulkImportResponse.getTotalTimeTaken().toMillis()));
+					System.out.println("Average #Inserts/second in this checkpoint: "
+							+ bulkImportResponse.getNumberOfDocumentsImported()
+									/ (0.001 * bulkImportResponse.getTotalTimeTaken().toMillis()));
+					System.out.println(
+							"##########################################################################################");
+
+					// Check the number of imported documents to ensure everything is successfully
+					// imported
+					if (bulkImportResponse.getNumberOfDocumentsImported() != cfg
+							.getNumberOfDocumentsForEachCheckpoint()) {
+						System.err.println(
+								"Some documents failed to get inserted in this checkpoint. This checkpoint has to get retried with upsert enabled");
+						System.err.println("Number of surfaced failures: " + bulkImportResponse.getErrors().size());
+						for (int j = 0; j < bulkImportResponse.getErrors().size(); j++) {
+							bulkImportResponse.getErrors().get(j).printStackTrace();
+						}
+						break;
+					}
+				}
+
+				fromStartToEnd.stop();
+
+				// Print average statistics across checkpoints
+				System.out.println(
+						"##########################################################################################");
+				System.out
+						.println("Total import time including data generation: " + fromStartToEnd.elapsed().toMillis());
+				System.out.println(
+						"Total import time in milli seconds measured by stopWatch: " + totalWatch.elapsed().toMillis());
+				System.out.println("Total import time in milli seconds measured by api : " + totalTimeInMillis);
+				System.out.println("Total Number of documents inserted " + totalNumberOfDocumentsImported);
+				System.out.println("Total request unit consumed: " + totalRequestCharge);
+				System.out.println(
+						"Average RUs/second:" + totalRequestCharge / (totalWatch.elapsed().toMillis() * 0.001));
+				System.out.println("Average #Inserts/second: "
+						+ totalNumberOfDocumentsImported / (totalWatch.elapsed().toMillis() * 0.001));
+
+			}
+		}
+
 	}
 
-    private static DocumentClient documentClientFrom(CmdLineConfiguration cfg) throws DocumentClientException {
+	private static DocumentClient documentClientFrom(CmdLineConfiguration cfg) throws DocumentClientException {
 
-        ConnectionPolicy policy = new ConnectionPolicy();
-        RetryOptions retryOptions = new RetryOptions();
-        retryOptions.setMaxRetryAttemptsOnThrottledRequests(0);
-        policy.setRetryOptions(retryOptions);
-        policy.setConnectionMode(cfg.getConnectionMode());
-        policy.setMaxPoolSize(cfg.getMaxConnectionPoolSize());
+		ConnectionPolicy policy = new ConnectionPolicy();
+		RetryOptions retryOptions = new RetryOptions();
+		retryOptions.setMaxRetryAttemptsOnThrottledRequests(0);
+		policy.setRetryOptions(retryOptions);
+		policy.setConnectionMode(cfg.getConnectionMode());
+		policy.setMaxPoolSize(cfg.getMaxConnectionPoolSize());
 
-        return new DocumentClient(cfg.getServiceEndpoint(), cfg.getMasterKey(),
-                policy, cfg.getConsistencyLevel());
-    }
-	
-    private static int getOfferThroughput(DocumentClient client, DocumentCollection collection) {
-        FeedResponse<Offer> offers = client.queryOffers(String.format("SELECT * FROM c where c.offerResourceId = '%s'", collection.getResourceId()), null);
+		return new DocumentClient(cfg.getServiceEndpoint(), cfg.getMasterKey(), policy, cfg.getConsistencyLevel());
+	}
 
-        List<Offer> offerAsList = offers.getQueryIterable().toList();
-        if (offerAsList.isEmpty()) {
-            throw new IllegalStateException("Cannot find Collection's corresponding offer");
-        }
+	private static int getOfferThroughput(DocumentClient client, DocumentCollection collection) {
+		FeedResponse<Offer> offers = client.queryOffers(
+				String.format("SELECT * FROM c where c.offerResourceId = '%s'", collection.getResourceId()), null);
 
-        Offer offer = offerAsList.get(0);
-        return offer.getContent().getInt("offerThroughput");
-    }
+		List<Offer> offerAsList = offers.getQueryIterable().toList();
+		if (offerAsList.isEmpty()) {
+			throw new IllegalStateException("Cannot find Collection's corresponding offer");
+		}
+
+		Offer offer = offerAsList.get(0);
+		return offer.getContent().getInt("offerThroughput");
+	}
 }
