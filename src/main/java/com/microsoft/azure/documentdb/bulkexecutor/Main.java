@@ -36,19 +36,24 @@ public class Main {
 
 		CmdLineConfiguration cfg = parseCommandLineArgs(args);
 
-		BulkImporter bulkImporter = new BulkImporter();
-
-		bulkImporter.executeBulkImport(cfg);
+		if (cfg.getOperation().equalsIgnoreCase("import")) {
+			
+			BulkImporter bulkImporter = new BulkImporter();
+			bulkImporter.executeBulkImport(cfg);			
+		}
 	}
 
 	private static CmdLineConfiguration parseCommandLineArgs(String[] args) {
+		
 		LOGGER.debug("Parsing the arguments ...");
 		CmdLineConfiguration cfg = new CmdLineConfiguration();
-
 		JCommander jcommander = null;
+		
 		try {
+			
 			jcommander = new JCommander(cfg, args);
 		} catch (Exception e) {
+			
 			// invalid command line args
 			System.err.println(e.getMessage());
 			jcommander = new JCommander(cfg);
@@ -58,6 +63,7 @@ public class Main {
 		}
 
 		if (cfg.isHelp()) {
+			
 			// prints out the usage help
 			jcommander.usage();
 			System.exit(0);

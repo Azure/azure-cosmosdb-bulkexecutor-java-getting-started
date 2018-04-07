@@ -43,8 +43,23 @@ public class CmdLineConfiguration {
     @Parameter(names = "-collectionId", description = "Collection ID", required = true)
     private String collectionId;
 
+    @Parameter(names = "-operation", description = "Operation to perform", required = true)
+    private String operation;
+    
+    @Parameter(names = "-shouldCreateCollection", description = "Flag to indicate if empty collection needs to be created on start if not exists. "
+    		+ "If false, assumes collection already exists.")
+    private boolean shouldCreateCollection = false;
+    
+    @Parameter(names = "-collectionThroughput", description = "The throughput at which the collection needs to be created if"
+    		+ " @shouldCreateCollection is set to true.")
+    private int collectionThroughput = 1000000;    
+    
+    @Parameter(names = "-partitionKey", description = "The partition key with which the collection needs to be created if "
+    		+ "shouldCreateCollection is set to true.")
+    private String partitionKey = "/partitionKey";
+    
     @Parameter(names = "-maxConnectionPoolSize", description = "Max Connection Pool Size")
-    private int maxConnectionPoolSize = 200;
+    private int maxConnectionPoolSize = 1000;
 
     @Parameter(names = "-consistencyLevel", description = "Consistency Level")
     private ConsistencyLevel consistencyLevel = ConsistencyLevel.Session;
@@ -57,10 +72,26 @@ public class CmdLineConfiguration {
 
     @Parameter(names = "-numberOfCheckpoints", description = "Number of checkpoints.")
     private int numberOfCheckpoints = 10;
-
+    
     @Parameter(names = {"-h", "-help", "--help"}, description = "Help", help = true)
     private boolean help = false;
 
+    public String getOperation() {
+    	return operation;
+    }
+    
+    public boolean getShouldCreateCollection() {
+    	return shouldCreateCollection;
+    }
+    
+    public int getCollectionThroughput() {
+    	return collectionThroughput;
+    }
+    
+    public String getPartitionKey() {
+    	return partitionKey;
+    } 
+    
     public int getNumberOfCheckpoints() {
         return numberOfCheckpoints;
     }

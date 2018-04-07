@@ -13,13 +13,14 @@ public class DataMigrationDocumentSource {
 
 	/**
 	 * Creates a collection of documents.
-	 *
-	 * @param numberOfDocuments
-	 * @param partitionKeyDefinition
-	 * @return collection of documents.
+	 * 
+	 * @param numberOfDocuments The number of documents to load
+	 * @param partitionKeyDefinition The partition key definition
+	 * @param prefix The prefix to start with for partition key and id values
+	 * @return The collection of documents to bulk import
 	 */
 	public static Collection<String> loadDocuments(int numberOfDocuments,
-			PartitionKeyDefinition partitionKeyDefinition) {
+			PartitionKeyDefinition partitionKeyDefinition, long prefix) {
 
 		Preconditions.checkArgument(partitionKeyDefinition != null && partitionKeyDefinition.getPaths().size() > 0,
 				"there is no partition key definition");
@@ -28,25 +29,26 @@ public class DataMigrationDocumentSource {
 		Preconditions.checkArgument(partitionKeyPath.size() == 1,
 				"the command line benchmark tool only support simple partition key path");
 
+		// Note: This sample assumes a simple (non-nested) partition key. Nested partition keys work with bulk import API too.
 		String partitionKeyName = partitionKeyPath.iterator().next().replaceFirst("^/", "");
-
-		// the size of each document is approximately 1KB
 
 		ArrayList<String> allDocs = new ArrayList<>(numberOfDocuments);
 
-		// return documents to be bulk imported
-		// if you are reading documents from disk you can change this to read documents
-		// from disk
+		// Return documents to be bulk imported
+		// If you are reading documents from disk you can change this to read documents from disk
 		return IntStream.range(0, numberOfDocuments).mapToObj(i -> {
-			String partitionKeyValue = UUID.randomUUID().toString();
+			
+			String partitionKeyValue = Long.toString(prefix + i);
 			return generateDocument(partitionKeyName, partitionKeyValue);
 		}).collect(Collectors.toCollection(() -> allDocs));
 	}
 
+	// The size of each document is approximately 1KB.
 	private static String generateDocument(String partitionKeyName, String partitionKeyValue) {
+		
 		StringBuilder sb = new StringBuilder();
 		sb.append("{");
-		sb.append("\"id\":\"").append(UUID.randomUUID().toString()).append("abc\"");
+		sb.append("\"id\":\"").append(partitionKeyValue).append(UUID.randomUUID().toString()).append("\"");
 
 		String data = UUID.randomUUID().toString();
 		data = data + data + "0123456789012";

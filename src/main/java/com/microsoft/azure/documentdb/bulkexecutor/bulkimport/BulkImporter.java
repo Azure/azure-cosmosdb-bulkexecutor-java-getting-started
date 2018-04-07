@@ -23,22 +23,17 @@
 package com.microsoft.azure.documentdb.bulkexecutor.bulkimport;
 
 import java.util.Collection;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
-import com.microsoft.azure.documentdb.ConnectionPolicy;
 import com.microsoft.azure.documentdb.DocumentClient;
-import com.microsoft.azure.documentdb.DocumentClientException;
 import com.microsoft.azure.documentdb.DocumentCollection;
-import com.microsoft.azure.documentdb.FeedResponse;
-import com.microsoft.azure.documentdb.Offer;
-import com.microsoft.azure.documentdb.RetryOptions;
 import com.microsoft.azure.documentdb.bulkexecutor.CmdLineConfiguration;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor;
 import com.microsoft.azure.documentdb.bulkexecutor.Main;
+import com.microsoft.azure.documentdb.bulkexecutor.Utilities;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor.Builder;
 import com.microsoft.azure.documentdb.bulkexecutor.bulkimport.BulkImportResponse;
 
@@ -47,23 +42,28 @@ public class BulkImporter {
 	public static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
 	public void executeBulkImport(CmdLineConfiguration cfg) throws Exception {
-		try (DocumentClient client = documentClientFrom(cfg)) {
+		try (DocumentClient client = Utilities.documentClientFrom(cfg)) {
 
-			// Set retry options high for initialization
-			client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(120);
-			client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(100);
-
-			// Also it is a good idea to set your connection pool size to be equal to the
+			// Tip: It is a good idea to set your connection pool size to be equal to the
 			// number of partitions serving your collection
 
-			// This assumes database and collection already exist
-			String collectionLink = String.format("/dbs/%s/colls/%s", cfg.getDatabaseId(), cfg.getCollectionId());
-
-			DocumentCollection collection = client.readCollection(collectionLink, null).getResource();
-
-			// You can specify the maximum throughput (out of entire collection's
-			// throughput) that you wish the bulk import API to consume here
-			int offerThroughput = getOfferThroughput(client, collection);
+			// Set client's retry options high for initialization
+			client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(120);
+			client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(100);
+			
+			DocumentCollection collection = null;
+			if(cfg.getShouldCreateCollection()) {
+				collection = Utilities.createEmptyCollectionIfNotExists(client, cfg.getDatabaseId(), cfg.getCollectionId(),
+						cfg.getPartitionKey(), cfg.getCollectionThroughput());
+			}
+			else {
+				// This assumes database and collection already exist
+				String collectionLink = String.format("/dbs/%s/colls/%s", cfg.getDatabaseId(), cfg.getCollectionId());
+				collection = client.readCollection(collectionLink, null).getResource();
+			}
+			
+			// You can specify the maximum throughput (out of entire collection's throughput) that you wish the bulk import API to consume here
+			int offerThroughput = Utilities.getOfferThroughput(client, collection);
 
 			Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(client, cfg.getDatabaseId(),
 					cfg.getCollectionId(), collection.getPartitionKey(), offerThroughput);
@@ -85,21 +85,22 @@ public class BulkImporter {
 
 				for (int i = 0; i < cfg.getNumberOfCheckpoints(); i++) {
 
-					BulkImportResponse bulkImportResponse;
-
+					// Generate documents to import				
+					long prefix = i * cfg.getNumberOfDocumentsForEachCheckpoint();
+					
 					Collection<String> documents = DataMigrationDocumentSource
-							.loadDocuments(cfg.getNumberOfDocumentsForEachCheckpoint(), collection.getPartitionKey());
+							.loadDocuments(cfg.getNumberOfDocumentsForEachCheckpoint(), collection.getPartitionKey(), prefix);
 
 					if (documents.size() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
-						throw new RuntimeException("not enough documents generated");
+						throw new RuntimeException("Not enough documents generated");
 					}
 
-					// Interested in the bulk import time, loading/generating documents is out of
-					// the scope of bulk executor and so has to be excluded
+					// Execute bulk import API				
 					totalWatch.start();
-					bulkImportResponse = bulkExecutor.importAll(documents, false);
+					BulkImportResponse bulkImportResponse = bulkExecutor.importAll(documents, false);
 					totalWatch.stop();
 
+					// Print statistics for this checkpoint				
 					System.out.println(
 							"##########################################################################################");
 
@@ -124,10 +125,8 @@ public class BulkImporter {
 					System.out.println(
 							"##########################################################################################");
 
-					// Check the number of imported documents to ensure everything is successfully
-					// imported
-					if (bulkImportResponse.getNumberOfDocumentsImported() != cfg
-							.getNumberOfDocumentsForEachCheckpoint()) {
+					// Check the number of imported documents to ensure everything is successfully imported
+					if (bulkImportResponse.getNumberOfDocumentsImported() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
 						System.err.println(
 								"Some documents failed to get inserted in this checkpoint. This checkpoint has to get retried with upsert enabled");
 						System.err.println("Number of surfaced failures: " + bulkImportResponse.getErrors().size());
@@ -140,7 +139,7 @@ public class BulkImporter {
 
 				fromStartToEnd.stop();
 
-				// Print average statistics across checkpoints
+				// Print average statistics across checkpoints			
 				System.out.println(
 						"##########################################################################################");
 				System.out
@@ -158,30 +157,5 @@ public class BulkImporter {
 			}
 		}
 
-	}
-
-	private static DocumentClient documentClientFrom(CmdLineConfiguration cfg) throws DocumentClientException {
-
-		ConnectionPolicy policy = new ConnectionPolicy();
-		RetryOptions retryOptions = new RetryOptions();
-		retryOptions.setMaxRetryAttemptsOnThrottledRequests(0);
-		policy.setRetryOptions(retryOptions);
-		policy.setConnectionMode(cfg.getConnectionMode());
-		policy.setMaxPoolSize(cfg.getMaxConnectionPoolSize());
-
-		return new DocumentClient(cfg.getServiceEndpoint(), cfg.getMasterKey(), policy, cfg.getConsistencyLevel());
-	}
-
-	private static int getOfferThroughput(DocumentClient client, DocumentCollection collection) {
-		FeedResponse<Offer> offers = client.queryOffers(
-				String.format("SELECT * FROM c where c.offerResourceId = '%s'", collection.getResourceId()), null);
-
-		List<Offer> offerAsList = offers.getQueryIterable().toList();
-		if (offerAsList.isEmpty()) {
-			throw new IllegalStateException("Cannot find Collection's corresponding offer");
-		}
-
-		Offer offer = offerAsList.get(0);
-		return offer.getContent().getInt("offerThroughput");
 	}
 }
