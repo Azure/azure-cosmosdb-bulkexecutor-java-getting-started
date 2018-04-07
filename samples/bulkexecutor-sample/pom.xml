@@ -18,7 +18,7 @@
 					</descriptorRefs>
 					<archive>
 						<manifest>
-							<mainClass>com.microsoft.azure.documentdb.bulkexecutor.App</mainClass>
+							<mainClass>com.microsoft.azure.cosmosdb.bulkexecutor.App</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

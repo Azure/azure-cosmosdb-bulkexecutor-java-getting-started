@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.microsoft.azure.documentdb.bulkexecutor.bulkimport;
+package com.microsoft.azure.cosmosdb.bulkexecutor.bulkimport;
 
 import java.util.Collection;
 
@@ -30,10 +30,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Stopwatch;
 import com.microsoft.azure.documentdb.DocumentClient;
 import com.microsoft.azure.documentdb.DocumentCollection;
-import com.microsoft.azure.documentdb.bulkexecutor.CmdLineConfiguration;
+import com.microsoft.azure.cosmosdb.bulkexecutor.CmdLineConfiguration;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor;
 import com.microsoft.azure.documentdb.bulkexecutor.Main;
-import com.microsoft.azure.documentdb.bulkexecutor.Utilities;
+import com.microsoft.azure.cosmosdb.bulkexecutor.Utilities;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor.Builder;
 import com.microsoft.azure.documentdb.bulkexecutor.bulkimport.BulkImportResponse;
 

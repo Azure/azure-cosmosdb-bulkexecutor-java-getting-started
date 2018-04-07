@@ -20,17 +20,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.microsoft.azure.documentdb.bulkexecutor;
+package com.microsoft.azure.cosmosdb.bulkexecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
-import com.microsoft.azure.documentdb.bulkexecutor.bulkimport.BulkImporter;
+import com.microsoft.azure.cosmosdb.bulkexecutor.bulkimport.BulkImporter;
 
 public class App {
 
-	public static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
 	public static void main(String[] args) throws Exception {
 
