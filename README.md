@@ -7,6 +7,7 @@ The Azure Cosmos DB BulkExecutor library for Java acts as an extension library t
 <summary><strong><em>Table of Contents</em></strong></summary>
 
 * [Consuming the Microsoft Azure Cosmos DB BulkExecutor Java library](#maven)
+* [DocumentBulkExecutor builder interface](#builder)
 * [Bulk Import API](#bulk-import-api)
   * [Configurable parameters](#bulk-import-configurations)
   * [Bulk import response object definition](#bulk-import-response)
@@ -38,6 +39,57 @@ For example, using maven, you can add the following dependency to your maven pom
   <artifactId>documentdb-bulkexecutor</artifactId>
   <version>1.0.6</version>
 </dependency>
+```
+------------------------------------------
+
+## DocumentBulkExecutor builder interface
+
+```java
+/**
+* Use the instance of {@link DocumentClient} to bulk import to the given instance of {@link DocumentCollection}
+
+* @param client an instance of {@link DocumentClient}
+* @param partitionKeyDef specifies the {@link PartitionKeyDefinition} of the collection
+* @param databaseName name of the database
+* @param collectionName name of the collection
+* @param offerThroughput specifies the throughput you want to allocate for bulk operations out of the collection's total throughput
+* @return an instance of {@link Builder}
+*/
+public Builder from(DocumentClient client,
+        String databaseName, 
+        String collectionName,
+        PartitionKeyDefinition partitionKeyDef,
+        int offerThroughput)
+
+/**
+* Use the given size to configure max mini-batch size (specific to bulk import API)
+* If not specified will use the default value of 200 KB.
+* @param size specifies the maximum size of a mini-batch used in bulk import API.
+* @return {@link Builder}
+*/
+public Builder withMaxMiniBatchSize(int size)
+
+/**
+* Use the given count to configure max update mini-batch count (specific to bulk update API)
+* If not specified will use the default value of 500.
+* @param count specifies the maximum count of update items in a mini-batch used in bulk update API.
+* @return {@link Builder}
+*/
+public Builder withMaxUpdateMiniBatchCount(int count)
+
+/**
+* Use the given retry options to apply to {@link DocumentClient} used in initialization of {@link DocumentBulkExecutor}
+* @param options an instance of {@link RetryOptions}
+* @return {@link Builder}
+*/
+public Builder withInitializationRetryOptions(RetryOptions options)
+
+/**
+* Instantiates {@link DocumentBulkExecutor} given the configured {@link Builder}.
+* @return the newly instantiated instance of {@link DocumentBulkExecutor}
+* @throws Exception if there is any failure
+*/
+public DocumentBulkExecutor build() throws Exception
 ```
 
 ------------------------------------------
@@ -88,6 +140,44 @@ public List<Object> getBadInputDocuments();
 ```
 
 ### Getting started with bulk import
+
+* Initialize DocumentClient
+```java
+ConnectionPolicy connectionPolicy = new ConnectionPolicy();
+connectionPolicy.setMaxPoolSize(1000);
+DocumentClient client = new DocumentClient(
+    HOST,
+    MASTER_KEY, 
+    connectionPolicy,
+    ConsistencyLevel.Session)
+```
+
+* Initialize DocumentBulkExecutor with high retry option values for the client SDK and then set to 0 to pass congestion control to DocumentBulkExecutor for its lifetime
+```java
+// Set client's retry options high for initialization
+client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(30);
+client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(9);
+
+// Builder pattern
+Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(
+    client,
+    DATABASE_NAME,
+	COLLECTION_NAME,
+    collection.getPartitionKey(),
+    offerThroughput) // throughput you want to allocate for bulk import out of the collection's total throughput
+
+// Instantiate DocumentBulkExecutor
+DocumentBulkExecutor bulkExecutor = bulkExecutorBuilder.build()
+
+// Set retries to 0 to pass complete control to bulk executor
+client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
+client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
+```
+
+* Call importAll
+```java
+BulkImportResponse bulkImportResponse = bulkExecutor.importAll(documents, false);
+```
 
 ------------------------------------------
 ## Contributing & Feedback
