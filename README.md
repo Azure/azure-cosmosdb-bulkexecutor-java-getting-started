@@ -10,17 +10,10 @@ The Azure Cosmos DB BulkExecutor library for Java acts as an extension library t
 * [DocumentBulkExecutor builder interface](#builder)
 * [Bulk Import API](#bulk-import-api)
   * [Configurable parameters](#bulk-import-configurations)
-  * [Bulk import response object definition](#bulk-import-response)
+  * [Bulk import response details](#bulk-import-response)
   * [Getting started with bulk import](#bulk-import-getting-started)
   * [Performance of bulk import sample](bulk-import-performance)
   * [API implementation details](bulk-import-client-side)
-* [Bulk Update API](#bulk-update-api)
-  * [List of supported field update operations](#field-update-operations)
-  * [Configurable parameters](#bulk-update-configurations)
-  * [Bulk update response object definition](#bulk-update-response)
-  * [Getting started with bulk update](#bulk-update-getting-started)
-  * [Performance of bulk update sample](bulk-update-performance)
-  * [API implementation details](bulk-update-client-side)
 * [Performance tips](#additional-pointers)
 * [Contributing & Feedback](#contributing--feedback)
 * [Legal Notices](#legal-notice)
@@ -161,7 +154,7 @@ client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledReq
 Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(
     client,
     DATABASE_NAME,
-	COLLECTION_NAME,
+    COLLECTION_NAME,
     collection.getPartitionKey(),
     offerThroughput) // throughput you want to allocate for bulk import out of the collection's total throughput
 
@@ -173,10 +166,43 @@ client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
 client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
 ```
 
-* Call importAll
+* Call importAll API
 ```java
 BulkImportResponse bulkImportResponse = bulkExecutor.importAll(documents, false);
 ```
+
+You can find the complete sample command line tool consuming the bulk import API [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/App.java)
+ - which generates random documents to be then bulk imported into an Azure Cosmos DB collection. You can configure the command line configurations to be passed in *CmdLineConfiguration* [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/CmdLineConfiguration.java).
+
+To build the command line tool from source (jar can be found in *target* folder):
+```console
+mvn clean package
+```
+
+Here is a sample command line invocation for bulk import:
+```console
+java -Xmx12G -jar bulkexecutor-sample-1.0-SNAPSHOT-jar-with-dependencies.jar -serviceEndpoint *** -masterKey *** -databaseId bulkImportDb -collectionId bulkImportColl -operation import -shouldCreateCollection -collectionThroughput 1000000 -partitionKey /profileid -maxConnectionPoolSize 6000 -numberOfDocumentsForEachCheckpoint 1000000 -numberOfCheckpoints 10
+```
+
+### Performance of bulk import sample
+
+When the given sample command line tool is run (to bulk import **10 million** documents of ~1KB) on a standard D16s v3 Azure Ubuntu VM in East US against a Cosmos DB collection in East US with **1 million RU/s** allocated throughput - with command line configs *numberOfDocumentsForEachCheckpoint* set to 1000000 and *numberOfCheckpoints* set to 10, we observe the following performance for bulk import:
+
+```java
+Total Number of documents inserted : 10000000
+Average RUs/second : 628386
+Average #Inserts/second : 108340
+```
+
+As seen, we observe **>9x** improvement in the write throughput using the bulk import API while providing out-of-the-box efficient handling of throttling, timeouts and transient exceptions - allowing easier scale-out by adding additional *BulkExecutor* client instances on individual VMs to achieve even greater write throughputs.
+
+### API implementation details
+
+When a bulk import API is triggered with a batch of documents, on the client-side, they are first shuffled into buckets corresponding to their target Cosmos DB partition key range. Within each partiton key range bucket, they are broken down into mini-batches and each mini-batch of documents acts as a payload that is committed transactionally.
+
+We have built in optimizations for the concurrent execution of these mini-batches both within and across partition key ranges to maximally utilize the allocated collection throughput. We have designed an [AIMD-style congestion control](https://academic.microsoft.com/#/detail/2158700277?FORM=DACADP) mechanism for each Cosmos DB partition key range **to efficiently handle throttling and timeouts**.
+
+These client-side optimizations augment server-side features specific to the BulkExecutor library which together make maximal consumption of available throughput possible.
 
 ------------------------------------------
 ## Contributing & Feedback
