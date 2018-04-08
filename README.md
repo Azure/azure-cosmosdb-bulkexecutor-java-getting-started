@@ -194,7 +194,7 @@ Average RUs/second : 628386
 Average #Inserts/second : 108340
 ```
 
-As seen, we observe **>9x** improvement in the write throughput using the bulk import API while providing out-of-the-box efficient handling of throttling, timeouts and transient exceptions - allowing easier scale-out by adding additional *BulkExecutor* client instances on individual VMs to achieve even greater write throughputs.
+As seen, we observe **>10x** improvement in the write throughput using the bulk import API while providing out-of-the-box efficient handling of throttling, timeouts and transient exceptions - allowing easier scale-out by adding additional *DocumentBulkExecutor* client instances on individual VMs to achieve even greater write throughputs.
 
 ### API implementation details
 
@@ -202,7 +202,18 @@ When a bulk import API is triggered with a batch of documents, on the client-sid
 
 We have built in optimizations for the concurrent execution of these mini-batches both within and across partition key ranges to maximally utilize the allocated collection throughput. We have designed an [AIMD-style congestion control](https://academic.microsoft.com/#/detail/2158700277?FORM=DACADP) mechanism for each Cosmos DB partition key range **to efficiently handle throttling and timeouts**.
 
-These client-side optimizations augment server-side features specific to the BulkExecutor library which together make maximal consumption of available throughput possible.
+These client-side optimizations augment server-side features specific to the DocumentBulkExecutor library which together make maximal consumption of available throughput possible.
+
+------------------------------------------
+## Performance tips
+
+* For best performance, run your application **from an Azure VM in the same region as your Cosmos DB account write region**.
+* For achieving higher throughput:
+1) Set JVM heap size to a large enough number to avoid any memory issue in handling large number of documents. 
+   Suggested heap size: max(3GB, 3 * sizeof(all documents passed to bulk import API in one batch)) 
+2) There is a preprocessing and warm up time; due that you will get higher throughput for bulks with larger number of documents. So, if you want to import 10,000,000 documents, running bulk import 10 times on 10 bulk of documents each of size 1,000,000 is more preferable than running bulk import 100 times on 100 bulk of documents each of size 100,000 documents. 
+* It is advised to instantiate a single *DocumentBulkExecutor* object for the entirety of the application within a single VM corresponding to a specific Cosmos DB collection.
+* Since a single bulk operation API execution consumes a large chunk of the client machine's CPU and network IO by spawning multiple tasks internally, avoid spawning multiple concurrent tasks within your application process each executing bulk operation API calls. If a single bulk operation API call running on a single VM is unable to consume your entire collection's throughput (if your collection's throughput > 1 million RU/s), preferably spin up separate VMs to concurrently execute bulk operation API calls.
 
 ------------------------------------------
 ## Contributing & Feedback
