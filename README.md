@@ -46,8 +46,7 @@ For example, using maven, you can add the following dependency to your maven pom
 
 ```java
 /**
-* Use the instance of {@link DocumentClient} to bulk import to the given instance of {@link DocumentCollection}
-
+* Use the instance of {@link DocumentClient} to perform bulk operations in target {@link DocumentCollection} instance at specified allocated throughput.
 * @param client an instance of {@link DocumentClient}
 * @param partitionKeyDef specifies the {@link PartitionKeyDefinition} of the collection
 * @param databaseName name of the database
@@ -62,7 +61,7 @@ public Builder from(DocumentClient client,
         int offerThroughput)
 
 /**
-* Use the given size to configure max mini-batch size (specific to bulk import API)
+* Use the given size to configure max mini-batch size (specific to bulk import API).
 * If not specified will use the default value of 200 KB.
 * @param size specifies the maximum size of a mini-batch used in bulk import API.
 * @return {@link Builder}
@@ -70,7 +69,7 @@ public Builder from(DocumentClient client,
 public Builder withMaxMiniBatchSize(int size)
 
 /**
-* Use the given count to configure max update mini-batch count (specific to bulk update API)
+* Use the given count to configure max update mini-batch count (specific to bulk update API).
 * If not specified will use the default value of 500.
 * @param count specifies the maximum count of update items in a mini-batch used in bulk update API.
 * @return {@link Builder}
@@ -78,7 +77,7 @@ public Builder withMaxMiniBatchSize(int size)
 public Builder withMaxUpdateMiniBatchCount(int count)
 
 /**
-* Use the given retry options to apply to {@link DocumentClient} used in initialization of {@link DocumentBulkExecutor}
+* Use the given retry options to apply to {@link DocumentClient} used in initialization of {@link DocumentBulkExecutor}.
 * @param options an instance of {@link RetryOptions}
 * @return {@link Builder}
 */
