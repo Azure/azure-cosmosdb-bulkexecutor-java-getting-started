@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.microsoft.azure.cosmosdb.bulkexecutor.bulkimport.BulkImporter;
+import com.microsoft.azure.cosmosdb.bulkexecutor.bulkupdate.BulkUpdater;
 
 public class App {
 
@@ -40,6 +41,11 @@ public class App {
 			
 			BulkImporter bulkImporter = new BulkImporter();
 			bulkImporter.executeBulkImport(cfg);			
+		}
+		else if (cfg.getOperation().equalsIgnoreCase("update")) {
+			
+			BulkUpdater bulkUpdater = new BulkUpdater();
+			bulkUpdater.executeBulkUpdate(cfg);			
 		}
 	}
 

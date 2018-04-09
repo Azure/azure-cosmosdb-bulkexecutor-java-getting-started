@@ -70,7 +70,7 @@ public class DataMigrationDocumentSource {
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append("{");
-		sb.append("\"id\":\"").append(partitionKeyValue).append(UUID.randomUUID().toString()).append("\"");
+		sb.append("\"id\":\"").append(partitionKeyValue).append("\"");
 
 		String data = UUID.randomUUID().toString();
 		data = data + data + "0123456789012";
