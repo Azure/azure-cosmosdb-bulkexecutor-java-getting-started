@@ -196,13 +196,220 @@ Average #Inserts/second : 108340
 
 As seen, we observe **>10x** improvement in the write throughput using the bulk import API while providing out-of-the-box efficient handling of throttling, timeouts and transient exceptions - allowing easier scale-out by adding additional *DocumentBulkExecutor* client instances on individual VMs to achieve even greater write throughputs.
 
+------------------------------------------
+## Bulk Update API
+
+The bulk update (a.k.a patch) API accepts a collection of update items - each update item specifies the list of field update operations to be performed on a document identified by an id and parititon key value.
+
+```java
+public BulkUpdateResponse updateAll(Collection<UpdateItem> updateItems) throws DocumentClientException;
+
+public BulkUpdateResponse updateAll(
+        Collection<UpdateItem> updateItems,
+        Integer maxConcurrencyPerPartitionRange) throws DocumentClientException;
+```
+
+* Definition of UpdateItem
+```csharp
+    public class UpdateItem
+    {
+        private String id;
+
+        private Object partitionKeyValue;
+
+        private List<UpdateOperationBase> updateOperations;
+
+        public UpdateItem(String id, Object partitionKeyValue, List<UpdateOperationBase> list)
+        {
+            this.id = id;
+            this.partitionKeyValue = partitionKeyValue;
+            this.updateOperations = list;
+        }
+
+        public String getId()
+        {
+            return this.id;
+        }
+        
+        public Object getPartitionKeyValue()
+        {
+            return this.partitionKeyValue;
+        }
+        
+        public List<UpdateOperationBase> getUpdateOperations()
+        {
+            return this.updateOperations;
+        }
+    }
+```
+
+### List of supported field update operations
+
+* Increment
+
+Supports incrementing any numeric document field by a specific value
+```java
+public class IncUpdateOperation
+{
+    public IncUpdateOperation(String field, Double value)
+}
+```
+
+* Set
+
+Supports setting any document field to a specific value
+```java
+public class SetUpdateOperation<TValue>
+{
+    public SetUpdateOperation(String field, TValue value)
+}
+```
+
+* Unset
+
+Supports removing a specific document field along with all children fields
+```java
+public class UnsetUpdateOperation
+{
+    public UnsetUpdateOperation(String field)
+}
+```
+
+* Array push
+
+Supports appending an array of values to a document field which contains an array
+```java
+public class PushUpdateOperation
+{
+    public PushUpdateOperation(String field, Object[] value)
+}
+```
+
+* Array remove
+
+Supports removing a specific value (if present) from a document field which contains an array
+```java
+public class RemoveUpdateOperation<TValue>
+{
+    public RemoveUpdateOperation(String field, TValue value)
+}
+```
+
+**Note**: For nested fields, use '.' as the nesting separtor. For example, if you wish to set the '/address/city' field to 'Seattle', express as shown:
+```java
+    SetUpdateOperation<String> nestedPropertySetUpdate = new SetUpdateOperation<String>("address.city", "Seattle");
+```
+
+### Configurable parameters
+
+* *maxConcurrencyPerPartitionRange* : The maximum degree of concurrency per partition key range, default value is 20.
+
+### Bulk update response details
+
+The result of the bulk update API call contains the getter functions:
+* Gets the total number of documents which were successfully updated.
+```java
+public int getNumberOfDocumentsUpdated();
+```
+* Gets the total request units (RU) consumed by the bulk update API call.
+```java
+public double getTotalRequestUnitsConsumed();
+```
+* Gets total time taken by the bulk update API call to complete execution.
+```java
+public Duration getTotalTimeTaken();
+```
+* Gets the list of errors if some documents out of the batch supplied to the bulk import API call failed to get inserted.
+```java
+public List<Exception> getErrors();
+```
+
+### Getting started with bulk update
+
+* Initialize DocumentClient
+```java
+ConnectionPolicy connectionPolicy = new ConnectionPolicy();
+connectionPolicy.setMaxPoolSize(1000);
+DocumentClient client = new DocumentClient(
+    HOST,
+    MASTER_KEY, 
+    connectionPolicy,
+    ConsistencyLevel.Session)
+```
+
+* Initialize DocumentBulkExecutor with high retry option values for the client SDK and then set to 0 to pass congestion control to DocumentBulkExecutor for its lifetime
+```java
+// Set client's retry options high for initialization
+client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(30);
+client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(9);
+
+// Builder pattern
+Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(
+    client,
+    DATABASE_NAME,
+    COLLECTION_NAME,
+    collection.getPartitionKey(),
+    offerThroughput) // throughput you want to allocate for bulk import out of the collection's total throughput
+
+// Instantiate DocumentBulkExecutor
+DocumentBulkExecutor bulkExecutor = bulkExecutorBuilder.build()
+
+// Set retries to 0 to pass complete control to bulk executor
+client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
+client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
+```
+
+* Define the update items along with corresponding field update operations
+```java
+SetUpdateOperation<String> nameUpdate = new SetUpdateOperation<>("Name","UpdatedDocValue");
+UnsetUpdateOperation descriptionUpdate = new UnsetUpdateOperation("description");
+
+ArrayList<UpdateOperationBase> updateOperations = new ArrayList<>();
+updateOperations.add(nameUpdate);
+updateOperations.add(descriptionUpdate);
+
+List<UpdateItem> updateItems = new ArrayList<>(cfg.getNumberOfDocumentsForEachCheckpoint());
+IntStream.range(0, cfg.getNumberOfDocumentsForEachCheckpoint()).mapToObj(j -> {						
+    return new UpdateItem(Long.toString(prefix + j), Long.toString(prefix + j), updateOperations);
+}).collect(Collectors.toCollection(() -> updateItems));
+```
+
+* Call updateAll API
+```java
+BulkUpdateResponse bulkUpdateResponse = bulkExecutor.updateAll(updateItems)
+```
+
+You can find the complete sample command line tool consuming the bulk update API [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/App.java)
+ - which generates random documents to be then bulk imported into an Azure Cosmos DB collection. You can configure the command line configurations to be passed in *CmdLineConfiguration* [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/CmdLineConfiguration.java).
+
+To build the command line tool from source (jar can be found in *target* folder):
+```console
+mvn clean package
+```
+
+Here is a sample command line invocation for bulk update:
+```console
+java -Xmx12G -jar bulkexecutor-sample-1.0-SNAPSHOT-jar-with-dependencies.jar -serviceEndpoint *** -masterKey *** -databaseId bulkUpdateDb -collectionId bulkUpdateColl -operation update -collectionThroughput 1000000 -partitionKey /profileid -maxConnectionPoolSize 6000 -numberOfDocumentsForEachCheckpoint 1000000 -numberOfCheckpoints 10
+```
+
+Prior to running the above bulk update, ensure sample documents have been imported using:
+```console
+java -Xmx12G -jar bulkexecutor-sample-1.0-SNAPSHOT-jar-with-dependencies.jar -serviceEndpoint *** -masterKey *** -databaseId bulkUpdateDb -collectionId bulkUpdateColl -operation import -shouldCreateCollection -collectionThroughput 1000000 -partitionKey /profileid -maxConnectionPoolSize 6000 -numberOfDocumentsForEachCheckpoint 1000000 -numberOfCheckpoints 10
+```
+
+### Performance of bulk update sample
+
+When the given sample command line tool is run (to bulk update **10 million** documents) on a standard D16s v3 Azure Ubuntu VM in East US against a Cosmos DB collection in East US with **1 million RU/s** allocated throughput - with command line configs *numberOfDocumentsForEachCheckpoint* set to 1000000 and *numberOfCheckpoints* set to 10, we observe the following performance for bulk update:
+
+```java
+Total Number of documents updated : 10000000
+Average RUs/second : 564108
+Average #Updates/second : 61244
+```
+
 ### API implementation details
 
-When a bulk import API is triggered with a batch of documents, on the client-side, they are first shuffled into buckets corresponding to their target Cosmos DB partition key range. Within each partiton key range bucket, they are broken down into mini-batches and each mini-batch of documents acts as a payload that is committed transactionally.
-
-We have built in optimizations for the concurrent execution of these mini-batches both within and across partition key ranges to maximally utilize the allocated collection throughput. We have designed an [AIMD-style congestion control](https://academic.microsoft.com/#/detail/2158700277?FORM=DACADP) mechanism for each Cosmos DB partition key range **to efficiently handle throttling and timeouts**.
-
-These client-side optimizations augment server-side features specific to the DocumentBulkExecutor library which together make maximal consumption of available throughput possible.
+The bulk update API is designed similar to bulk import - look at the implementation details of bulk import API for more details.
 
 ------------------------------------------
 ## Performance tips
