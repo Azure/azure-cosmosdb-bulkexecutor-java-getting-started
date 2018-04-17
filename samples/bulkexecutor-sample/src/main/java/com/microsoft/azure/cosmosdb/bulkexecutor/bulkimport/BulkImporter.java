@@ -147,9 +147,13 @@ public class BulkImporter {
 						"Average RUs/second:" + totalRequestCharge / (totalWatch.elapsed().toMillis() * 0.001));
 				System.out.println("Average #Inserts/second: "
 						+ totalNumberOfDocumentsImported / (totalWatch.elapsed().toMillis() * 0.001));
-
+				
+				// Close BulkExecutor instance to release internal resources.
+				bulkExecutor.close();
 			}
+			
+			//  Close DocumentClient instance to release internal resources.
+			client.close();
 		}
-
 	}
 }
