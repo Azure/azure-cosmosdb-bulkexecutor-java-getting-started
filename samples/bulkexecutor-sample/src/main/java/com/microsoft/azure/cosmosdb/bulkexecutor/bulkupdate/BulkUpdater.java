@@ -35,18 +35,17 @@ import com.microsoft.azure.cosmosdb.bulkexecutor.CmdLineConfiguration;
 import com.microsoft.azure.cosmosdb.bulkexecutor.Utilities;
 import com.microsoft.azure.documentdb.DocumentClient;
 import com.microsoft.azure.documentdb.DocumentCollection;
+import com.microsoft.azure.documentdb.bulkexecutor.BulkUpdateResponse;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor;
-import com.microsoft.azure.documentdb.bulkexecutor.Main;
-import com.microsoft.azure.documentdb.bulkexecutor.bulkupdate.BulkUpdateResponse;
-import com.microsoft.azure.documentdb.bulkexecutor.bulkupdate.SetUpdateOperation;
-import com.microsoft.azure.documentdb.bulkexecutor.bulkupdate.UnsetUpdateOperation;
-import com.microsoft.azure.documentdb.bulkexecutor.bulkupdate.UpdateItem;
-import com.microsoft.azure.documentdb.bulkexecutor.bulkupdate.UpdateOperationBase;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor.Builder;
+import com.microsoft.azure.documentdb.bulkexecutor.SetUpdateOperation;
+import com.microsoft.azure.documentdb.bulkexecutor.UnsetUpdateOperation;
+import com.microsoft.azure.documentdb.bulkexecutor.UpdateItem;
+import com.microsoft.azure.documentdb.bulkexecutor.UpdateOperationBase;
 
 public class BulkUpdater {
 	
-	public static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(BulkUpdater.class);
 
 	/**
 	 * In this sample, we assume documents have been loaded into the collection using BulkImporter with the schema mentioned 
@@ -126,7 +125,7 @@ public class BulkUpdater {
 					
 					// Execute bulk update API				
 					totalWatch.start();
-					BulkUpdateResponse bulkUpdateResponse = bulkExecutor.updateAll(updateItems);
+					BulkUpdateResponse bulkUpdateResponse = bulkExecutor.updateAll(updateItems, null);
 					totalWatch.stop();
 
 					// Print statistics for this checkpoint				

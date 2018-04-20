@@ -30,7 +30,7 @@ For example, using maven, you can add the following dependency to your maven pom
 <dependency>
   <groupId>com.microsoft.azure</groupId>
   <artifactId>documentdb-bulkexecutor</artifactId>
-  <version>1.0.6</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 ------------------------------------------
@@ -87,13 +87,9 @@ public DocumentBulkExecutor build() throws Exception
 ------------------------------------------
 ## Bulk Import API
 
-We provide two overloads of the bulk import API which accept a list of JSON-serialized documents:
+The bulk import API accepts a collection of JSON-serialized documents:
 
 ```java
-public BulkImportResponse importAll(
-        Collection<String> documents,
-        boolean isUpsert) throws DocumentClientException;
-
 public BulkImportResponse importAll(
         Collection<String> documents,
         boolean isUpsert,
@@ -168,7 +164,7 @@ client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledReq
 
 * Call importAll API
 ```java
-BulkImportResponse bulkImportResponse = bulkExecutor.importAll(documents, false);
+BulkImportResponse bulkImportResponse = bulkExecutor.importAll(documents, false, true, null);
 ```
 
 You can find the complete sample command line tool consuming the bulk import API [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/App.java)
@@ -202,8 +198,6 @@ As seen, we observe **>10x** improvement in the write throughput using the bulk 
 The bulk update (a.k.a patch) API accepts a collection of update items - each update item specifies the list of field update operations to be performed on a document identified by an id and parititon key value.
 
 ```java
-public BulkUpdateResponse updateAll(Collection<UpdateItem> updateItems) throws DocumentClientException;
-
 public BulkUpdateResponse updateAll(
         Collection<UpdateItem> updateItems,
         Integer maxConcurrencyPerPartitionRange) throws DocumentClientException;
@@ -376,7 +370,7 @@ IntStream.range(0, cfg.getNumberOfDocumentsForEachCheckpoint()).mapToObj(j -> {
 
 * Call updateAll API
 ```java
-BulkUpdateResponse bulkUpdateResponse = bulkExecutor.updateAll(updateItems)
+BulkUpdateResponse bulkUpdateResponse = bulkExecutor.updateAll(updateItems, null)
 ```
 
 You can find the complete sample command line tool consuming the bulk update API [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/App.java)
