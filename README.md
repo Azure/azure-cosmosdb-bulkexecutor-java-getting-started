@@ -17,7 +17,7 @@ The Azure Cosmos DB BulkExecutor library for Java acts as an extension library t
 * [Bulk Update API](#bulk-import-api)
   * [List of supported field update operations](#bulk-update-list-update-operations)
   * [Configurable parameters](#bulk-update-configurations)
-  * [Bulk update response details](#bulk-update-response)
+  * [Bulk update response details](#bulk-updatjavae-response)
   * [Getting started with bulk update](#bulk-update-getting-started)
   * [Performance of bulk update sample](bulk-update-performance)
   * [API implementation details](bulk-update-client-side)  
@@ -211,37 +211,37 @@ public BulkUpdateResponse updateAll(
 ```
 
 * Definition of UpdateItem
-```csharp
-    public class UpdateItem
+```java
+public class UpdateItem
+{
+    private String id;
+
+    private Object partitionKeyValue;
+
+    private List<UpdateOperationBase> updateOperations;
+
+    public UpdateItem(String id, Object partitionKeyValue, List<UpdateOperationBase> list)
     {
-        private String id;
-
-        private Object partitionKeyValue;
-
-        private List<UpdateOperationBase> updateOperations;
-
-        public UpdateItem(String id, Object partitionKeyValue, List<UpdateOperationBase> list)
-        {
-            this.id = id;
-            this.partitionKeyValue = partitionKeyValue;
-            this.updateOperations = list;
-        }
-
-        public String getId()
-        {
-            return this.id;
-        }
-        
-        public Object getPartitionKeyValue()
-        {
-            return this.partitionKeyValue;
-        }
-        
-        public List<UpdateOperationBase> getUpdateOperations()
-        {
-            return this.updateOperations;
-        }
+        this.id = id;
+        this.partitionKeyValue = partitionKeyValue;
+        this.updateOperations = list;
     }
+
+    public String getId()
+    {
+        return this.id;
+    }
+        
+    public Object getPartitionKeyValue()
+    {
+        return this.partitionKeyValue;
+    }
+        
+    public List<UpdateOperationBase> getUpdateOperations()
+    {
+        return this.updateOperations;
+    }
+}
 ```
 
 ### List of supported field update operations
