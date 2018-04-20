@@ -14,6 +14,13 @@ The Azure Cosmos DB BulkExecutor library for Java acts as an extension library t
   * [Getting started with bulk import](#bulk-import-getting-started)
   * [Performance of bulk import sample](bulk-import-performance)
   * [API implementation details](bulk-import-client-side)
+* [Bulk Update API](#bulk-import-api)
+  * [List of supported field update operations](#bulk-update-list-update-operations)
+  * [Configurable parameters](#bulk-update-configurations)
+  * [Bulk update response details](#bulk-update-response)
+  * [Getting started with bulk update](#bulk-update-getting-started)
+  * [Performance of bulk update sample](bulk-update-performance)
+  * [API implementation details](bulk-update-client-side)  
 * [Performance tips](#additional-pointers)
 * [Contributing & Feedback](#contributing--feedback)
 * [Legal Notices](#legal-notice)
@@ -291,7 +298,7 @@ public class RemoveUpdateOperation<TValue>
 
 **Note**: For nested fields, use '.' as the nesting separtor. For example, if you wish to set the '/address/city' field to 'Seattle', express as shown:
 ```java
-    SetUpdateOperation<String> nestedPropertySetUpdate = new SetUpdateOperation<String>("address.city", "Seattle");
+SetUpdateOperation<String> nestedPropertySetUpdate = new SetUpdateOperation<String>("address.city", "Seattle");
 ```
 
 ### Configurable parameters
