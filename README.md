@@ -413,6 +413,103 @@ Average #Updates/second : 61244
 The bulk update API is designed similar to bulk import - look at the implementation details of bulk import API for more details.
 
 ------------------------------------------
+
+## Bulk Delete API
+
+The bulk delete API accepts a query, whose results will be deleted from the collection
+
+```java
+public BulkDeleteResponse deleteAll(
+        String query,
+        RequestOptions) throws DocumentClientException;   
+```
+
+```java
+public BulkDeleteResponse deleteAll(
+        String query) throws DocumentClientException;   
+```
+
+### Bulk delete response details
+
+The result of the bulk delete API call contains the getter functions:
+* Gets the total number of documents which were successfully deleted from those retrieved from the input query.
+```java
+public int getNumberOfDocumentsDeleted();
+```
+* Gets the total request units (RU) consumed by the bulk delete API call.
+```java
+public double getTotalRequestUnitsConsumed();
+```
+* Gets total time taken by the bulk delete API call to complete execution.
+```java
+public Duration getTotalTimeTaken();
+```
+
+### Getting started with bulk delete
+
+* Initialize DocumentClient
+```java
+ConnectionPolicy connectionPolicy = new ConnectionPolicy();
+connectionPolicy.setMaxPoolSize(1000);
+DocumentClient client = new DocumentClient(
+    HOST,
+    MASTER_KEY, 
+    connectionPolicy,
+    ConsistencyLevel.Session)
+```
+
+* Initialize DocumentBulkExecutor with high retry option values for the client SDK and then set to 0 to pass congestion control to DocumentBulkExecutor for its lifetime
+```java
+// Set client's retry options high for initialization
+client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(30);
+client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(9);
+
+// Builder pattern
+Builder bulkExecutorBuilder = DocumentBulkExecutor.builder().from(
+    client,
+    DATABASE_NAME,
+    COLLECTION_NAME,
+    collection.getPartitionKey(),
+    offerThroughput) // throughput you want to allocate for bulk delete out of the collection's total throughput
+
+// Instantiate DocumentBulkExecutor
+DocumentBulkExecutor bulkExecutor = bulkExecutorBuilder.build()
+
+// Set retries to 0 to pass complete control to bulk executor
+client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
+client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
+```
+
+* Call deleteAll API
+```java
+String query = "select * from c where c.partitionKey = \"partitionKey-27\" and c.property = \"propertyValue\"";
+
+// If the partition key is one of the filters used in the query, make sure to also include RequestOptions with the partition key set
+RequestOptions requestOptions = new RequestOptions();
+requestOptions.setPartitionKey(new PartitionKey("partitionKey-27");
+
+BulkDeleteResponse bulkDeleteResponse = bulkExecutor.deleteAll(query, requestOptions);
+```
+
+You can find the complete sample command line tool consuming the bulk delete API [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/App.java)
+
+You can configure the command line configurations to be passed in *CmdLineConfiguration* [here](https://github.com/Azure/azure-cosmosdb-bulkexecutor-java-getting-started/blob/master/samples/bulkexecutor-sample/src/main/java/com/microsoft/azure/cosmosdb/bulkexecutor/CmdLineConfiguration.java).
+
+To build the command line tool from source (jar can be found in *target* folder):
+```console
+mvn clean package
+```
+
+Here is a sample command line invocation for bulk delete:
+```console
+java -Xmx12G -jar bulkexecutor-sample-1.0-SNAPSHOT-jar-with-dependencies.jar -serviceEndpoint *** -masterKey *** -databaseId bulkDeleteDb -collectionId bulkDeletetColl -operation delete -partitionKey /profileid -maxConnectionPoolSize 6000
+```
+
+### Performance tips for bulk delete
+
+While the deleteAll api can be called both with and without RequestOptions, if the query contains a partition key filter, including RequestOptions (containing the PartitionKey value) in the call would be more RU efficient.
+
+------------------------------------------
 ## Performance tips
 
 * For best performance, run your application **from an Azure VM in the same region as your Cosmos DB account write region**.

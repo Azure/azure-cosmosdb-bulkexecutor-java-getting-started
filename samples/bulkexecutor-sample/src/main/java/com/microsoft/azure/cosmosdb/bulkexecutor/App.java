@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
+import com.microsoft.azure.cosmosdb.bulkdelete.BulkDeleter;
 import com.microsoft.azure.cosmosdb.bulkexecutor.bulkimport.BulkImporter;
 import com.microsoft.azure.cosmosdb.bulkexecutor.bulkupdate.BulkUpdater;
 
@@ -47,6 +48,11 @@ public class App {
 			BulkUpdater bulkUpdater = new BulkUpdater();
 			bulkUpdater.executeBulkUpdate(cfg);			
 		}
+		else if (cfg.getOperation().equalsIgnoreCase("delete")) {
+            
+            BulkDeleter bulkDeleter = new BulkDeleter();
+            bulkDeleter.executeBulkDelete(cfg);         
+        }
 	}
 
 	private static CmdLineConfiguration parseCommandLineArgs(String[] args) {
