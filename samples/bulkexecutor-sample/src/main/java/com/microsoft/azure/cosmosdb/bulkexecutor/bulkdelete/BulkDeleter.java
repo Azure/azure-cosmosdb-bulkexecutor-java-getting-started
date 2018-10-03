@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.microsoft.azure.cosmosdb.bulkdelete;
+package com.microsoft.azure.cosmosdb.bulkexecutor.bulkdelete;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

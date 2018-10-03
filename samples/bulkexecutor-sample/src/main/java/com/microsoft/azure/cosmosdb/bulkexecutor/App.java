@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
-import com.microsoft.azure.cosmosdb.bulkdelete.BulkDeleter;
+import com.microsoft.azure.cosmosdb.bulkexecutor.bulkdelete.BulkDeleter;
 import com.microsoft.azure.cosmosdb.bulkexecutor.bulkimport.BulkImporter;
 import com.microsoft.azure.cosmosdb.bulkexecutor.bulkupdate.BulkUpdater;
 
