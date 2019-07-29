@@ -50,9 +50,9 @@ public class App {
 		}
 		else if (cfg.getOperation().equalsIgnoreCase("delete")) {
             
-            BulkDeleter bulkDeleter = new BulkDeleter();
-            bulkDeleter.executeBulkDelete(cfg);         
-        }
+			BulkDeleter bulkDeleter = new BulkDeleter();
+			bulkDeleter.executeBulkDelete(cfg);         
+		}
 	}
 
 	private static CmdLineConfiguration parseCommandLineArgs(String[] args) {
