@@ -31,6 +31,7 @@ import com.google.common.base.Stopwatch;
 import com.microsoft.azure.documentdb.DocumentClient;
 import com.microsoft.azure.documentdb.DocumentCollection;
 import com.microsoft.azure.cosmosdb.bulkexecutor.CmdLineConfiguration;
+import com.microsoft.azure.documentdb.bulkexecutor.BulkImportFailure;
 import com.microsoft.azure.documentdb.bulkexecutor.BulkImportResponse;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor;
 import com.microsoft.azure.cosmosdb.bulkexecutor.Utilities;
@@ -126,9 +127,14 @@ public class BulkImporter {
 					if (bulkImportResponse.getNumberOfDocumentsImported() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
 						System.err.println(
 								"Some documents failed to get inserted in this checkpoint. This checkpoint has to get retried with upsert enabled");
-						System.err.println("Number of surfaced failures: " + bulkImportResponse.getErrors().size());
-						for (int j = 0; j < bulkImportResponse.getErrors().size(); j++) {
-							bulkImportResponse.getErrors().get(j).printStackTrace();
+						
+						System.out.println("Number of bulk import failures = " + bulkImportResponse.getFailedImports().size());
+						for (BulkImportFailure eachBulkImportFailure : bulkImportResponse.getFailedImports()) {
+						    System.out.println(
+						        "Number of failures corresponding to exception of type: " + 
+						        eachBulkImportFailure.getBulkImportFailureException().getClass().getName() + 
+						        " = " + 
+						        eachBulkImportFailure.getDocumentsFailedToImport().size());
 						}
 						break;
 					}

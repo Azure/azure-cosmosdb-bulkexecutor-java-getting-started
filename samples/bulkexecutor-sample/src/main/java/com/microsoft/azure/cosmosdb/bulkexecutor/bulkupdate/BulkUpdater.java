@@ -35,6 +35,8 @@ import com.microsoft.azure.cosmosdb.bulkexecutor.CmdLineConfiguration;
 import com.microsoft.azure.cosmosdb.bulkexecutor.Utilities;
 import com.microsoft.azure.documentdb.DocumentClient;
 import com.microsoft.azure.documentdb.DocumentCollection;
+import com.microsoft.azure.documentdb.bulkexecutor.BulkImportFailure;
+import com.microsoft.azure.documentdb.bulkexecutor.BulkUpdateFailure;
 import com.microsoft.azure.documentdb.bulkexecutor.BulkUpdateResponse;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor;
 import com.microsoft.azure.documentdb.bulkexecutor.DocumentBulkExecutor.Builder;
@@ -157,10 +159,15 @@ public class BulkUpdater {
 					if (bulkUpdateResponse.getNumberOfDocumentsUpdated() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
 						System.err.println(
 								"Some documents failed to get updated in this checkpoint.");
-						System.err.println("Number of surfaced failures: " + bulkUpdateResponse.getErrors().size());
-						for (int j = 0; j < bulkUpdateResponse.getErrors().size(); j++) {
-							bulkUpdateResponse.getErrors().get(j).printStackTrace();
-						}
+						
+						System.out.println("Number of bulk update failures = " + bulkUpdateResponse.getFailedUpdates().size());
+                        for (BulkUpdateFailure eachBulkUpdateFailure : bulkUpdateResponse.getFailedUpdates()) {
+                            System.out.println(
+                                "Number of failures corresponding to exception of type: " + 
+                                eachBulkUpdateFailure.getBulkUpdateFailureException().getClass().getName() + 
+                                " = " + 
+                                eachBulkUpdateFailure.getFailedUpdateItems().size());
+                        }
 						break;
 					}
 				}
