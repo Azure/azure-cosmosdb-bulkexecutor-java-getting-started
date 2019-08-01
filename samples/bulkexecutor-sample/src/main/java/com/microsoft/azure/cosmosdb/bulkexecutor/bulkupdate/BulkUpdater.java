@@ -159,8 +159,8 @@ public class BulkUpdater {
 					if (bulkUpdateResponse.getNumberOfDocumentsUpdated() != cfg.getNumberOfDocumentsForEachCheckpoint()) {
 						System.err.println(
 								"Some documents failed to get updated in this checkpoint.");
-						
-						System.out.println("Number of bulk update failures = " + bulkUpdateResponse.getFailedUpdates().size());
+
+                        System.out.println("Number of bulk update failures = " + bulkUpdateResponse.getFailedUpdates().size());
                         for (BulkUpdateFailure eachBulkUpdateFailure : bulkUpdateResponse.getFailedUpdates()) {
                             System.out.println(
                                 "Number of failures corresponding to exception of type: " + 
