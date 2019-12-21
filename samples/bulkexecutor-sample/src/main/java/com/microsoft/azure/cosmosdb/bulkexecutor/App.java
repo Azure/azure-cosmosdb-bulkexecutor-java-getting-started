@@ -50,6 +50,10 @@ public class App {
 		}
 		else if (cfg.getOperation().equalsIgnoreCase("delete")) {
             
+		    // First, generate sample documents
+		    BulkImporter bulkImporter = new BulkImporter();
+            bulkImporter.executeBulkImport(cfg);
+            
 			BulkDeleter bulkDeleter = new BulkDeleter();
 			bulkDeleter.executeBulkDelete(cfg);         
 		}

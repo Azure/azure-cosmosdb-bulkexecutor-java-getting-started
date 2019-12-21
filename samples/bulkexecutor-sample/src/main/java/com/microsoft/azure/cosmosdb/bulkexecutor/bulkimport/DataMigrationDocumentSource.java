@@ -60,7 +60,7 @@ public class DataMigrationDocumentSource {
         // If you are reading documents from disk you can change this to read documents from disk
         return IntStream.range(0, numberOfDocuments).mapToObj(i -> {
             
-            String partitionKeyValue = Long.toString((prefix + i)%100);
+            String partitionKeyValue = Long.toString((prefix + i));
             return generateDocument(partitionKeyName, partitionKeyValue);
         }).collect(Collectors.toCollection(() -> allDocs));
     }
@@ -70,7 +70,7 @@ public class DataMigrationDocumentSource {
         
         StringBuilder sb = new StringBuilder();
         sb.append("{");
-        sb.append("\"id\":\"").append(UUID.randomUUID().toString()).append("\"");
+        sb.append("\"id\":\"").append(partitionKeyValue).append("\"");
 
         String data = UUID.randomUUID().toString();
         data = data + data + "0123456789012";

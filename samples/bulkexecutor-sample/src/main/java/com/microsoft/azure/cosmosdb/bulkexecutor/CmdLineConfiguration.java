@@ -52,7 +52,7 @@ public class CmdLineConfiguration {
     
     @Parameter(names = "-collectionThroughput", description = "The throughput at which the collection needs to be created if"
     		+ " @shouldCreateCollection is set to true.")
-    private int collectionThroughput = 1000000;    
+    private int collectionThroughput = 100000;    
     
     @Parameter(names = "-partitionKey", description = "The partition key with which the collection needs to be created if "
     		+ "shouldCreateCollection is set to true.")
@@ -68,10 +68,10 @@ public class CmdLineConfiguration {
     private ConnectionMode connectionMode = ConnectionMode.Gateway;
 
     @Parameter(names = "-numberOfDocumentsForEachCheckpoint", description = "Number of documents in each checkpoint.")
-    private int numberOfDocumentsForEachCheckpoint = 500000;
+    private int numberOfDocumentsForEachCheckpoint = 50000;
 
     @Parameter(names = "-numberOfCheckpoints", description = "Number of checkpoints.")
-    private int numberOfCheckpoints = 10;
+    private int numberOfCheckpoints = 100;
     
     @Parameter(names = {"-h", "-help", "--help"}, description = "Help", help = true)
     private boolean help = false;

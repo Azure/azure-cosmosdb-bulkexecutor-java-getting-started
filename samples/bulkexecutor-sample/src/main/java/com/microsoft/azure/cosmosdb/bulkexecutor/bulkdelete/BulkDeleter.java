@@ -22,6 +22,11 @@
  */
 package com.microsoft.azure.cosmosdb.bulkexecutor.bulkdelete;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,21 +85,12 @@ public class BulkDeleter {
                 // Set retries to 0 to pass control to bulk executor
                 client.getConnectionPolicy().getRetryOptions().setMaxRetryWaitTimeInSeconds(0);
                 client.getConnectionPolicy().getRetryOptions().setMaxRetryAttemptsOnThrottledRequests(0);
+                int numberOfDocumentsToDeleteInBulk = cfg.getNumberOfDocumentsForEachCheckpoint();
+                List<Pair<String, String>> pkIdPairsToDelete = getOneCheckpointOfDocumentsToDelete(numberOfDocumentsToDeleteInBulk);
                 
                 Stopwatch totalWatch = Stopwatch.createUnstarted();
-
-                // Execute bulk delete API  
-                String query = "select * from c where c." + cfg.getPartitionKey().replaceFirst("^/", "") + " = \"2\""; 
-                System.out.println(query);
-                
-                // If a partition key is present in the query above, adding RequestOptions also containing the value of the partition key
-                // for which the query is being issued to delete documents, will optimize performance.
-                // If a partition key filter is not present in the query, only including the query in the 'deleteAll' call below, will suffice.
-                RequestOptions requestOptions = new RequestOptions();
-                requestOptions.setPartitionKey(new PartitionKey("2"));
-                
                 totalWatch.start();
-                BulkDeleteResponse bulkDeleteResponse = bulkExecutor.deleteAll(query, requestOptions);
+                BulkDeleteResponse bulkDeleteResponse = bulkExecutor.deleteAll(pkIdPairsToDelete);
                 totalWatch.stop();
                 
                 // Print statistics for bulk delete operation             
@@ -118,5 +114,15 @@ public class BulkDeleter {
                 
             } 
         }
+    }
+    
+    private List<Pair<String, String>> getOneCheckpointOfDocumentsToDelete(int numberOfDocumentsToDeleteInBulk) {
+        List<Pair<String, String>> pkIdPairsToDelete = new ArrayList<>();
+        
+        for (int i=0; i<numberOfDocumentsToDeleteInBulk; i++) {
+            pkIdPairsToDelete.add(new MutablePair<String, String>(Integer.toString(i), Integer.toString(i)));
+        }
+        
+        return pkIdPairsToDelete;
     }
 }
